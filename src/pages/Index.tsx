@@ -8,6 +8,7 @@ import { Globe } from '../components/Globe';
 import { ClaimIntelligence } from '../components/ClaimIntelligence';
 import { DashboardCards } from '../components/DashboardCards';
 import { TimelineSlider } from '../components/TimelineSlider';
+import { AppSidebar } from '../components/AppSidebar';
 
 const Index = () => {
   const [selectedClaim, setSelectedClaim] = useState<string | null>(null);
@@ -17,15 +18,18 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen w-full overflow-hidden relative">
+    <div className="min-h-screen w-full overflow-hidden relative flex">
       {/* Animated background */}
       <AnimatedBackground />
       
       {/* Cursor glow effect */}
       <CursorGlow />
       
+      {/* Sidebar Navigation */}
+      <AppSidebar />
+      
       {/* Main layout */}
-      <div className="relative z-10 flex flex-col h-screen">
+      <div className="relative z-10 flex-1 flex flex-col h-screen">
         {/* Header */}
         <Header />
         
