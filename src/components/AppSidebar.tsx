@@ -7,6 +7,7 @@ import {
   ClipboardList, 
   Building2, 
   ShieldCheck,
+  Settings,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -49,6 +50,12 @@ const navItems = [
     label: 'System Transparency', 
     icon: ShieldCheck,
     description: 'Model limitations & calibration'
+  },
+  { 
+    path: '/settings', 
+    label: 'Settings', 
+    icon: Settings,
+    description: 'Configure your experience'
   },
 ];
 
