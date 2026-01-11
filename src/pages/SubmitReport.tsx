@@ -16,7 +16,13 @@ import {
   Target,
   Eye,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Plus,
+  Trash2,
+  Link2,
+  Unlink2,
+  Copy,
+  GitCompare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,10 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const sectors = [
   'Energy',
@@ -48,39 +56,84 @@ const sectors = [
   'Real Estate'
 ];
 
+interface Claim {
+  id: string;
+  text: string;
+  sourceUrl?: string;
+  targetDate?: string;
+}
+
 interface ClaimAnalysis {
+  id: string;
   claimType: string;
   specificityScore: number;
   verifiabilityScore: number;
   keyMetrics: string[];
   redFlags: string[];
-  verificationApproach: string[];
   riskLevel: 'Low' | 'Medium' | 'High';
   summary: string;
 }
+
+interface Relationship {
+  claimIds: string[];
+  description: string;
+  severity?: 'High' | 'Medium' | 'Low';
+}
+
+interface ReportAnalysis {
+  claims: ClaimAnalysis[];
+  relationships: {
+    contradictions: Relationship[];
+    supporting: Relationship[];
+    duplicates: Relationship[];
+    inconsistencies: Relationship[];
+  };
+  overallRiskLevel: 'Low' | 'Medium' | 'High';
+  reportSummary: string;
+}
+
+const generateId = () => Math.random().toString(36).substring(2, 9);
 
 const SubmitReport = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [analysis, setAnalysis] = useState<ClaimAnalysis | null>(null);
+  const [analysis, setAnalysis] = useState<ReportAnalysis | null>(null);
   const { toast } = useToast();
   
-  const [formData, setFormData] = useState({
+  const [companyInfo, setCompanyInfo] = useState({
     companyName: '',
     sector: '',
-    claimText: '',
-    targetDate: '',
-    sourceUrl: '',
     location: '',
     additionalNotes: ''
   });
 
-  const analyzeClaimWithAI = async () => {
-    if (!formData.claimText.trim()) {
+  const [claims, setClaims] = useState<Claim[]>([
+    { id: generateId(), text: '', sourceUrl: '', targetDate: '' }
+  ]);
+
+  const addClaim = useCallback(() => {
+    setClaims(prev => [...prev, { id: generateId(), text: '', sourceUrl: '', targetDate: '' }]);
+    setAnalysis(null);
+  }, []);
+
+  const removeClaim = useCallback((id: string) => {
+    setClaims(prev => prev.filter(c => c.id !== id));
+    setAnalysis(null);
+  }, []);
+
+  const updateClaim = useCallback((id: string, field: keyof Claim, value: string) => {
+    setClaims(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+    setAnalysis(null);
+  }, []);
+
+  const analyzeClaimsWithAI = async () => {
+    const validClaims = claims.filter(c => c.text.trim());
+    
+    if (validClaims.length === 0) {
       toast({
-        title: "Missing claim text",
-        description: "Please enter a claim statement to analyze.",
+        title: "No claims to analyze",
+        description: "Please enter at least one claim statement.",
         variant: "destructive"
       });
       return;
@@ -90,11 +143,11 @@ const SubmitReport = () => {
     setAnalysis(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-claim', {
+      const { data, error } = await supabase.functions.invoke('analyze-claims', {
         body: {
-          claimText: formData.claimText,
-          companyName: formData.companyName,
-          sector: formData.sector
+          claims: validClaims.map(c => ({ id: c.id, text: c.text })),
+          companyName: companyInfo.companyName,
+          sector: companyInfo.sector
         }
       });
 
@@ -103,15 +156,15 @@ const SubmitReport = () => {
       if (data.analysis) {
         setAnalysis(data.analysis);
         toast({
-          title: "Claim analyzed",
-          description: "AI has detected and categorized your claim.",
+          title: `${validClaims.length} claim${validClaims.length > 1 ? 's' : ''} analyzed`,
+          description: "AI has detected relationships between claims.",
         });
       }
     } catch (error) {
       console.error('Analysis error:', error);
       toast({
         title: "Analysis failed",
-        description: error instanceof Error ? error.message : "Could not analyze the claim.",
+        description: error instanceof Error ? error.message : "Could not analyze claims.",
         variant: "destructive"
       });
     } finally {
@@ -125,15 +178,13 @@ const SubmitReport = () => {
     if (!analysis) {
       toast({
         title: "Analyze first",
-        description: "Please analyze the claim before submitting.",
+        description: "Please analyze the claims before submitting.",
         variant: "destructive"
       });
       return;
     }
 
     setIsSubmitting(true);
-    
-    // Simulate submission (would save to database in production)
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     setIsSubmitting(false);
@@ -141,31 +192,20 @@ const SubmitReport = () => {
     
     toast({
       title: "Report submitted",
-      description: "Your claim has been queued for verification.",
+      description: `${claims.filter(c => c.text.trim()).length} claims queued for verification.`,
     });
     
-    // Reset after showing success
     setTimeout(() => {
       setSubmitted(false);
       setAnalysis(null);
-      setFormData({
+      setClaims([{ id: generateId(), text: '', sourceUrl: '', targetDate: '' }]);
+      setCompanyInfo({
         companyName: '',
         sector: '',
-        claimText: '',
-        targetDate: '',
-        sourceUrl: '',
         location: '',
         additionalNotes: ''
       });
     }, 3000);
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear analysis when claim text changes
-    if (field === 'claimText') {
-      setAnalysis(null);
-    }
   };
 
   const getRiskColor = (risk: string) => {
@@ -183,9 +223,17 @@ const SubmitReport = () => {
     return 'text-danger';
   };
 
+  const getClaimAnalysis = (claimId: string) => {
+    return analysis?.claims.find(c => c.id === claimId);
+  };
+
+  const getClaimIndex = (claimId: string) => {
+    return claims.findIndex(c => c.id === claimId) + 1;
+  };
+
   return (
     <AppLayout>
-      <div className="p-6 space-y-6 max-w-5xl mx-auto">
+      <div className="p-6 space-y-6 max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -199,7 +247,7 @@ const SubmitReport = () => {
             <div>
               <h1 className="text-2xl font-semibold text-foreground">Submit New Report</h1>
               <p className="text-sm text-muted-foreground">
-                Add an ESG claim — AI will detect and categorize it automatically
+                Add multiple ESG claims — AI will analyze relationships & contradictions
               </p>
             </div>
           </div>
@@ -221,7 +269,7 @@ const SubmitReport = () => {
                 <div>
                   <h3 className="font-medium text-success">Report Submitted Successfully</h3>
                   <p className="text-sm text-muted-foreground">
-                    Your claim has been queued for verification analysis
+                    Your claims have been queued for verification analysis
                   </p>
                 </div>
               </div>
@@ -229,14 +277,14 @@ const SubmitReport = () => {
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Form Column */}
           <motion.form
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             onSubmit={handleSubmit}
-            className="lg:col-span-2 space-y-6"
+            className="xl:col-span-2 space-y-6"
           >
             {/* Company Information */}
             <div className="glass-panel p-6 space-y-4">
@@ -251,8 +299,8 @@ const SubmitReport = () => {
                   <Input
                     id="companyName"
                     placeholder="e.g., Acme Corporation"
-                    value={formData.companyName}
-                    onChange={(e) => handleInputChange('companyName', e.target.value)}
+                    value={companyInfo.companyName}
+                    onChange={(e) => setCompanyInfo(prev => ({ ...prev, companyName: e.target.value }))}
                     required
                     className="bg-muted/50 border-border/50 focus:border-primary"
                   />
@@ -261,8 +309,8 @@ const SubmitReport = () => {
                 <div className="space-y-2">
                   <Label htmlFor="sector">Industry Sector *</Label>
                   <Select
-                    value={formData.sector}
-                    onValueChange={(value) => handleInputChange('sector', value)}
+                    value={companyInfo.sector}
+                    onValueChange={(value) => setCompanyInfo(prev => ({ ...prev, sector: value }))}
                     required
                   >
                     <SelectTrigger className="bg-muted/50 border-border/50 focus:border-primary">
@@ -286,98 +334,166 @@ const SubmitReport = () => {
                   <Input
                     id="location"
                     placeholder="e.g., United States, Europe, Global"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    value={companyInfo.location}
+                    onChange={(e) => setCompanyInfo(prev => ({ ...prev, location: e.target.value }))}
                     className="pl-10 bg-muted/50 border-border/50 focus:border-primary"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Claim Details */}
+            {/* Claims Section */}
             <div className="glass-panel p-6 space-y-4">
-              <h2 className="text-lg font-medium text-foreground flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary" />
-                Claim Details
-              </h2>
-              
-              <div className="space-y-2">
-                <Label htmlFor="targetDate">Target/Commitment Date</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="targetDate"
-                    type="date"
-                    value={formData.targetDate}
-                    onChange={(e) => handleInputChange('targetDate', e.target.value)}
-                    className="pl-10 bg-muted/50 border-border/50 focus:border-primary"
-                  />
-                </div>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-medium text-foreground flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Claims
+                  <Badge variant="secondary" className="ml-2">
+                    {claims.filter(c => c.text.trim()).length} active
+                  </Badge>
+                </h2>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addClaim}
+                  className="gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Claim
+                </Button>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="claimText">Claim Statement *</Label>
-                <Textarea
-                  id="claimText"
-                  placeholder="Enter the exact ESG claim or commitment made by the company..."
-                  value={formData.claimText}
-                  onChange={(e) => handleInputChange('claimText', e.target.value)}
-                  required
-                  rows={4}
-                  className="bg-muted/50 border-border/50 focus:border-primary resize-none"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Provide the verbatim text of the claim as stated in official documents
-                </p>
+              <div className="space-y-4">
+                <AnimatePresence mode="popLayout">
+                  {claims.map((claim, index) => {
+                    const claimAnalysis = getClaimAnalysis(claim.id);
+                    return (
+                      <motion.div
+                        key={claim.id}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        layout
+                        className={cn(
+                          "p-4 rounded-lg border transition-all",
+                          claimAnalysis 
+                            ? `border-l-4 ${claimAnalysis.riskLevel === 'High' ? 'border-l-danger border-danger/20 bg-danger/5' : claimAnalysis.riskLevel === 'Medium' ? 'border-l-warning border-warning/20 bg-warning/5' : 'border-l-success border-success/20 bg-success/5'}`
+                            : "border-border/50 bg-muted/30"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-sm font-medium text-primary">
+                            {index + 1}
+                          </div>
+                          
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <Textarea
+                                placeholder="Enter the ESG claim statement..."
+                                value={claim.text}
+                                onChange={(e) => updateClaim(claim.id, 'text', e.target.value)}
+                                rows={2}
+                                className="flex-1 bg-background/50 border-border/50 focus:border-primary resize-none text-sm"
+                              />
+                              {claims.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeClaim(claim.id)}
+                                  className="text-muted-foreground hover:text-danger flex-shrink-0"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div className="relative">
+                                <LinkIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                                <Input
+                                  type="url"
+                                  placeholder="Source URL"
+                                  value={claim.sourceUrl}
+                                  onChange={(e) => updateClaim(claim.id, 'sourceUrl', e.target.value)}
+                                  className="pl-8 h-8 text-xs bg-background/50 border-border/50"
+                                />
+                              </div>
+                              <div className="relative">
+                                <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                                <Input
+                                  type="date"
+                                  placeholder="Target date"
+                                  value={claim.targetDate}
+                                  onChange={(e) => updateClaim(claim.id, 'targetDate', e.target.value)}
+                                  className="pl-8 h-8 text-xs bg-background/50 border-border/50"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Inline analysis preview */}
+                            {claimAnalysis && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-3 text-xs pt-1"
+                              >
+                                <Badge className={cn("text-xs", getRiskColor(claimAnalysis.riskLevel))}>
+                                  {claimAnalysis.riskLevel} Risk
+                                </Badge>
+                                <span className="text-muted-foreground">{claimAnalysis.claimType}</span>
+                                <span className={cn("font-mono", getScoreColor(claimAnalysis.specificityScore))}>
+                                  S:{claimAnalysis.specificityScore}
+                                </span>
+                                <span className={cn("font-mono", getScoreColor(claimAnalysis.verifiabilityScore))}>
+                                  V:{claimAnalysis.verifiabilityScore}
+                                </span>
+                              </motion.div>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
               </div>
 
               {/* Analyze Button */}
               <Button
                 type="button"
-                onClick={analyzeClaimWithAI}
-                disabled={isAnalyzing || !formData.claimText.trim()}
+                onClick={analyzeClaimsWithAI}
+                disabled={isAnalyzing || claims.filter(c => c.text.trim()).length === 0}
                 className="w-full bg-gradient-to-r from-primary/80 to-primary hover:from-primary hover:to-primary/90 text-primary-foreground"
               >
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Analyzing with AI...
+                    Analyzing {claims.filter(c => c.text.trim()).length} claims...
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Detect & Analyze Claim
+                    Analyze All Claims
                   </>
                 )}
               </Button>
             </div>
 
-            {/* Source Information */}
+            {/* Additional Notes */}
             <div className="glass-panel p-6 space-y-4">
               <h2 className="text-lg font-medium text-foreground flex items-center gap-2">
-                <LinkIcon className="w-5 h-5 text-primary" />
-                Source Information
+                <FileText className="w-5 h-5 text-primary" />
+                Additional Information
               </h2>
               
               <div className="space-y-2">
-                <Label htmlFor="sourceUrl">Source URL</Label>
-                <Input
-                  id="sourceUrl"
-                  type="url"
-                  placeholder="https://company.com/sustainability-report.pdf"
-                  value={formData.sourceUrl}
-                  onChange={(e) => handleInputChange('sourceUrl', e.target.value)}
-                  className="bg-muted/50 border-border/50 focus:border-primary"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="additionalNotes">Additional Notes</Label>
+                <Label htmlFor="additionalNotes">Notes</Label>
                 <Textarea
                   id="additionalNotes"
-                  placeholder="Any additional context or areas to investigate..."
-                  value={formData.additionalNotes}
-                  onChange={(e) => handleInputChange('additionalNotes', e.target.value)}
+                  placeholder="Any additional context about this report..."
+                  value={companyInfo.additionalNotes}
+                  onChange={(e) => setCompanyInfo(prev => ({ ...prev, additionalNotes: e.target.value }))}
                   rows={2}
                   className="bg-muted/50 border-border/50 focus:border-primary resize-none"
                 />
@@ -386,13 +502,10 @@ const SubmitReport = () => {
               {/* Document Upload Placeholder */}
               <div className="space-y-2">
                 <Label>Supporting Documents</Label>
-                <div className="border-2 border-dashed border-border/50 rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                  <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Drag and drop files here
-                  </p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">
-                    PDF, DOCX up to 10MB
+                <div className="border-2 border-dashed border-border/50 rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                  <Upload className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
+                  <p className="text-xs text-muted-foreground">
+                    Drag and drop files (PDF, DOCX up to 10MB)
                   </p>
                 </div>
               </div>
@@ -404,12 +517,10 @@ const SubmitReport = () => {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setFormData({
+                  setClaims([{ id: generateId(), text: '', sourceUrl: '', targetDate: '' }]);
+                  setCompanyInfo({
                     companyName: '',
                     sector: '',
-                    claimText: '',
-                    targetDate: '',
-                    sourceUrl: '',
                     location: '',
                     additionalNotes: ''
                   });
@@ -417,7 +528,7 @@ const SubmitReport = () => {
                 }}
                 className="border-border/50"
               >
-                Clear Form
+                Clear All
               </Button>
               <Button
                 type="submit"
@@ -457,145 +568,205 @@ const SubmitReport = () => {
             <div className="glass-panel p-4 sticky top-6">
               <h3 className="text-sm font-medium text-foreground flex items-center gap-2 mb-4">
                 <Sparkles className="w-4 h-4 text-primary" />
-                AI Claim Analysis
+                AI Report Analysis
               </h3>
 
-              <AnimatePresence mode="wait">
-                {isAnalyzing ? (
-                  <motion.div
-                    key="loading"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex flex-col items-center justify-center py-12 text-center"
-                  >
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                      <Sparkles className="w-5 h-5 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-4">Analyzing claim...</p>
-                  </motion.div>
-                ) : analysis ? (
-                  <motion.div
-                    key="analysis"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="space-y-4"
-                  >
-                    {/* Risk Level Badge */}
-                    <div className={cn(
-                      "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border",
-                      getRiskColor(analysis.riskLevel)
-                    )}>
-                      <ShieldAlert className="w-4 h-4" />
-                      {analysis.riskLevel} Risk
-                    </div>
+              <ScrollArea className="h-[calc(100vh-220px)]">
+                <AnimatePresence mode="wait">
+                  {isAnalyzing ? (
+                    <motion.div
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-col items-center justify-center py-12 text-center"
+                    >
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                        <Sparkles className="w-5 h-5 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-4">Analyzing claims & relationships...</p>
+                    </motion.div>
+                  ) : analysis ? (
+                    <motion.div
+                      key="analysis"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-4 pr-2"
+                    >
+                      {/* Overall Risk */}
+                      <div className={cn(
+                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border",
+                        getRiskColor(analysis.overallRiskLevel)
+                      )}>
+                        <ShieldAlert className="w-4 h-4" />
+                        {analysis.overallRiskLevel} Overall Risk
+                      </div>
 
-                    {/* Claim Type */}
-                    <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
-                      <p className="text-xs text-muted-foreground mb-1">Detected Type</p>
-                      <p className="text-sm font-medium text-foreground">{analysis.claimType}</p>
-                    </div>
-
-                    {/* Scores */}
-                    <div className="grid grid-cols-2 gap-3">
+                      {/* Report Summary */}
                       <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Target className="w-3 h-3 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">Specificity</p>
+                        <p className="text-xs text-muted-foreground mb-1">Summary</p>
+                        <p className="text-sm text-foreground">{analysis.reportSummary}</p>
+                      </div>
+
+                      {/* Contradictions */}
+                      {analysis.relationships.contradictions.length > 0 && (
+                        <div className="p-3 rounded-lg bg-danger/5 border border-danger/20">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Unlink2 className="w-3.5 h-3.5 text-danger" />
+                            <p className="text-xs font-medium text-danger">Contradictions Found</p>
+                          </div>
+                          <div className="space-y-2">
+                            {analysis.relationships.contradictions.map((rel, i) => (
+                              <div key={i} className="text-xs">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className="font-mono text-danger">
+                                    Claims {rel.claimIds.map(id => getClaimIndex(id)).join(' ↔ ')}
+                                  </span>
+                                  {rel.severity && (
+                                    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", getRiskColor(rel.severity))}>
+                                      {rel.severity}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-muted-foreground">{rel.description}</p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <p className={cn("text-xl font-bold", getScoreColor(analysis.specificityScore))}>
-                          {analysis.specificityScore}/10
+                      )}
+
+                      {/* Inconsistencies */}
+                      {analysis.relationships.inconsistencies.length > 0 && (
+                        <div className="p-3 rounded-lg bg-warning/5 border border-warning/20">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <AlertTriangle className="w-3.5 h-3.5 text-warning" />
+                            <p className="text-xs font-medium text-warning">Inconsistencies</p>
+                          </div>
+                          <div className="space-y-2">
+                            {analysis.relationships.inconsistencies.map((rel, i) => (
+                              <div key={i} className="text-xs">
+                                <span className="font-mono text-warning">
+                                  Claims {rel.claimIds.map(id => getClaimIndex(id)).join(' ↔ ')}:
+                                </span>
+                                <p className="text-muted-foreground mt-0.5">{rel.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Supporting */}
+                      {analysis.relationships.supporting.length > 0 && (
+                        <div className="p-3 rounded-lg bg-success/5 border border-success/20">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Link2 className="w-3.5 h-3.5 text-success" />
+                            <p className="text-xs font-medium text-success">Supporting Claims</p>
+                          </div>
+                          <div className="space-y-2">
+                            {analysis.relationships.supporting.map((rel, i) => (
+                              <div key={i} className="text-xs">
+                                <span className="font-mono text-success">
+                                  Claims {rel.claimIds.map(id => getClaimIndex(id)).join(' + ')}:
+                                </span>
+                                <p className="text-muted-foreground mt-0.5">{rel.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Duplicates */}
+                      {analysis.relationships.duplicates.length > 0 && (
+                        <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                            <p className="text-xs font-medium text-muted-foreground">Potential Duplicates</p>
+                          </div>
+                          <div className="space-y-2">
+                            {analysis.relationships.duplicates.map((rel, i) => (
+                              <div key={i} className="text-xs">
+                                <span className="font-mono">
+                                  Claims {rel.claimIds.map(id => getClaimIndex(id)).join(' ≈ ')}:
+                                </span>
+                                <p className="text-muted-foreground mt-0.5">{rel.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Individual Claim Details */}
+                      <div className="pt-2">
+                        <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                          <GitCompare className="w-3.5 h-3.5" />
+                          Individual Claim Analysis
                         </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Eye className="w-3 h-3 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">Verifiability</p>
-                        </div>
-                        <p className={cn("text-xl font-bold", getScoreColor(analysis.verifiabilityScore))}>
-                          {analysis.verifiabilityScore}/10
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Summary */}
-                    <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
-                      <p className="text-xs text-muted-foreground mb-1">Summary</p>
-                      <p className="text-sm text-foreground">{analysis.summary}</p>
-                    </div>
-
-                    {/* Key Metrics */}
-                    {analysis.keyMetrics.length > 0 && (
-                      <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <TrendingUp className="w-3 h-3 text-primary" />
-                          <p className="text-xs text-muted-foreground">Key Metrics</p>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {analysis.keyMetrics.map((metric, i) => (
-                            <span key={i} className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded">
-                              {metric}
-                            </span>
+                        <div className="space-y-2">
+                          {analysis.claims.map((claim, i) => (
+                            <div
+                              key={claim.id}
+                              className={cn(
+                                "p-2.5 rounded-lg border text-xs",
+                                claim.riskLevel === 'High' ? 'border-danger/30 bg-danger/5' :
+                                claim.riskLevel === 'Medium' ? 'border-warning/30 bg-warning/5' :
+                                'border-success/30 bg-success/5'
+                              )}
+                            >
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="font-medium">Claim {getClaimIndex(claim.id)}</span>
+                                <Badge className={cn("text-[10px] px-1.5 py-0", getRiskColor(claim.riskLevel))}>
+                                  {claim.riskLevel}
+                                </Badge>
+                              </div>
+                              <p className="text-muted-foreground mb-1">{claim.claimType}</p>
+                              <div className="flex gap-3">
+                                <span className={cn("font-mono", getScoreColor(claim.specificityScore))}>
+                                  <Target className="w-3 h-3 inline mr-0.5" />
+                                  {claim.specificityScore}/10
+                                </span>
+                                <span className={cn("font-mono", getScoreColor(claim.verifiabilityScore))}>
+                                  <Eye className="w-3 h-3 inline mr-0.5" />
+                                  {claim.verifiabilityScore}/10
+                                </span>
+                              </div>
+                              {claim.redFlags.length > 0 && (
+                                <div className="mt-1.5 pt-1.5 border-t border-border/30">
+                                  <p className="text-danger text-[10px] font-medium">Red Flags:</p>
+                                  <ul className="text-muted-foreground">
+                                    {claim.redFlags.slice(0, 2).map((flag, fi) => (
+                                      <li key={fi} className="truncate">• {flag}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
                           ))}
                         </div>
                       </div>
-                    )}
-
-                    {/* Red Flags */}
-                    {analysis.redFlags.length > 0 && (
-                      <div className="p-3 rounded-lg bg-danger/5 border border-danger/20">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <AlertTriangle className="w-3 h-3 text-danger" />
-                          <p className="text-xs text-danger">Red Flags</p>
-                        </div>
-                        <ul className="space-y-1">
-                          {analysis.redFlags.map((flag, i) => (
-                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                              <span className="text-danger mt-0.5">•</span>
-                              {flag}
-                            </li>
-                          ))}
-                        </ul>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="empty"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-center py-12"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                        <AlertCircle className="w-6 h-6 text-muted-foreground" />
                       </div>
-                    )}
-
-                    {/* Verification Approach */}
-                    {analysis.verificationApproach.length > 0 && (
-                      <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <Eye className="w-3 h-3 text-primary" />
-                          <p className="text-xs text-muted-foreground">Verification Methods</p>
-                        </div>
-                        <ul className="space-y-1">
-                          {analysis.verificationApproach.map((approach, i) => (
-                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                              <span className="text-primary mt-0.5">•</span>
-                              {approach}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="empty"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-center py-12"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
-                      <AlertCircle className="w-6 h-6 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Enter a claim and click "Detect & Analyze" to see AI insights
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      <p className="text-sm text-muted-foreground">
+                        Add claims and click "Analyze All Claims" to see AI insights
+                      </p>
+                      <p className="text-xs text-muted-foreground/60 mt-2">
+                        AI will detect contradictions, supporting claims & duplicates
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </ScrollArea>
             </div>
           </motion.div>
         </div>
