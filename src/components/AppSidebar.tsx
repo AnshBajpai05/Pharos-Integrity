@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FilePlus
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -52,7 +53,13 @@ const navItems = [
     description: 'Model limitations & calibration'
   },
   { 
-    path: '/settings', 
+    path: '/submit-report', 
+    label: 'Submit Report', 
+    icon: FilePlus,
+    description: 'Add new ESG claims'
+  },
+  { 
+    path: '/settings',
     label: 'Settings', 
     icon: Settings,
     description: 'Configure your experience'

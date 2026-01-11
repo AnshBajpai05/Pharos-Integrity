@@ -10,6 +10,7 @@ import AuditTrail from "./pages/AuditTrail";
 import PortfolioOverview from "./pages/PortfolioOverview";
 import SystemTransparency from "./pages/SystemTransparency";
 import Settings from "./pages/Settings";
+import SubmitReport from "./pages/SubmitReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/portfolio" element={<PortfolioOverview />} />
           <Route path="/transparency" element={<SystemTransparency />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/submit-report" element={<SubmitReport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
