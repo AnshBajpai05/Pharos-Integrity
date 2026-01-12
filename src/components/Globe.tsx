@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, Suspense } from 'react';
+import React, { useRef, useEffect, Suspense, useState } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -42,21 +42,52 @@ function ClaimPoint({ marker, onClick, isSelected }: { marker: ClaimMarker; onCl
   const color = getStatusColor(marker.status);
   const meshRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
+  const outerRingRef = useRef<THREE.Mesh>(null);
+  const [hovered, setHovered] = useState(false);
   
   useFrame((state) => {
     if (meshRef.current) {
       const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.2;
-      meshRef.current.scale.setScalar(isSelected ? scale * 1.5 : scale);
+      meshRef.current.scale.setScalar(isSelected ? scale * 1.5 : hovered ? scale * 1.3 : scale);
     }
-    // Make ring face camera
+    // Make rings face camera
     if (ringRef.current) {
       ringRef.current.lookAt(state.camera.position);
     }
+    if (outerRingRef.current) {
+      outerRingRef.current.lookAt(state.camera.position);
+    }
   });
+
+  const handleClick = (e: any) => {
+    e.stopPropagation();
+    onClick();
+  };
+
+  const handlePointerOver = (e: any) => {
+    e.stopPropagation();
+    setHovered(true);
+    document.body.style.cursor = 'pointer';
+  };
+
+  const handlePointerOut = () => {
+    setHovered(false);
+    document.body.style.cursor = 'auto';
+  };
 
   return (
     <group position={position}>
-      <mesh ref={meshRef} onClick={onClick}>
+      {/* Invisible larger click target for better hit detection */}
+      <mesh 
+        onClick={handleClick}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+      >
+        <sphereGeometry args={[0.08, 16, 16]} />
+        <meshBasicMaterial transparent opacity={0} />
+      </mesh>
+      {/* Visible marker */}
+      <mesh ref={meshRef}>
         <sphereGeometry args={[0.03, 16, 16]} />
         <meshBasicMaterial color={color} />
       </mesh>
@@ -66,12 +97,12 @@ function ClaimPoint({ marker, onClick, isSelected }: { marker: ClaimMarker; onCl
         <meshBasicMaterial color={color} transparent opacity={0.6} side={THREE.DoubleSide} />
       </mesh>
       {/* Outer pulse ring */}
-      <mesh ref={ringRef}>
+      <mesh ref={outerRingRef}>
         <ringGeometry args={[0.08, 0.09, 32]} />
         <meshBasicMaterial color={color} transparent opacity={0.3} side={THREE.DoubleSide} />
       </mesh>
-      {isSelected && (
-        <Html distanceFactor={8} position={[0, 0.12, 0]}>
+      {(isSelected || hovered) && (
+        <Html distanceFactor={8} position={[0, 0.12, 0]} style={{ pointerEvents: 'none' }}>
           <div className="glass-panel px-3 py-1.5 text-xs whitespace-nowrap">
             <span className="text-foreground font-medium">{marker.label}</span>
           </div>
