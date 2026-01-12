@@ -113,7 +113,7 @@ function ClaimPoint({ marker, onClick, isSelected }: { marker: ClaimMarker; onCl
 }
 
 function Earth({ selectedClaim, onClaimSelect }: { selectedClaim: string | null; onClaimSelect: (id: string) => void }) {
-  const earthRef = useRef<THREE.Mesh>(null);
+  const earthGroupRef = useRef<THREE.Group>(null);
   const cloudsRef = useRef<THREE.Mesh>(null);
   const atmosphereRef = useRef<THREE.Mesh>(null);
   
@@ -132,20 +132,22 @@ function Earth({ selectedClaim, onClaimSelect }: { selectedClaim: string | null;
   }, [dayTexture, nightTexture, cloudTexture]);
 
   useFrame(() => {
-    if (earthRef.current && !selectedClaim) {
-      earthRef.current.rotation.y += 0.0008;
+    // Rotate the entire earth group (including markers) together
+    if (earthGroupRef.current && !selectedClaim) {
+      earthGroupRef.current.rotation.y += 0.0008;
     }
+    // Clouds rotate slightly faster for parallax effect
     if (cloudsRef.current) {
-      cloudsRef.current.rotation.y += 0.0012;
+      cloudsRef.current.rotation.y += 0.0004; // Relative to earth group
     }
     if (atmosphereRef.current) {
-      atmosphereRef.current.rotation.y += 0.0004;
+      atmosphereRef.current.rotation.y -= 0.0004; // Slight counter rotation
     }
   });
 
   return (
     <group>
-      {/* Outer atmosphere glow */}
+      {/* Outer atmosphere glow - static */}
       <mesh>
         <sphereGeometry args={[2.3, 64, 64]} />
         <meshBasicMaterial 
@@ -167,40 +169,43 @@ function Earth({ selectedClaim, onClaimSelect }: { selectedClaim: string | null;
         />
       </mesh>
       
-      {/* Cloud layer */}
-      <mesh ref={cloudsRef}>
-        <sphereGeometry args={[2.02, 64, 64]} />
-        <meshStandardMaterial 
-          map={cloudTexture}
-          transparent 
-          opacity={0.35}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-      
-      {/* Earth with realistic texture */}
-      <mesh ref={earthRef}>
-        <sphereGeometry args={[2, 64, 64]} />
-        <meshStandardMaterial 
-          map={dayTexture}
-          roughness={0.8}
-          metalness={0.1}
-          emissiveMap={nightTexture}
-          emissive={new THREE.Color(0xffaa66)}
-          emissiveIntensity={0.4}
-        />
-      </mesh>
-      
-      {/* Claim markers */}
-      {claimMarkers.map((marker) => (
-        <ClaimPoint
-          key={marker.id}
-          marker={marker}
-          onClick={() => onClaimSelect(marker.id)}
-          isSelected={selectedClaim === marker.id}
-        />
-      ))}
+      {/* Rotating group: Earth + Markers rotate together */}
+      <group ref={earthGroupRef}>
+        {/* Cloud layer */}
+        <mesh ref={cloudsRef}>
+          <sphereGeometry args={[2.02, 64, 64]} />
+          <meshStandardMaterial 
+            map={cloudTexture}
+            transparent 
+            opacity={0.35}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+        
+        {/* Earth with realistic texture */}
+        <mesh>
+          <sphereGeometry args={[2, 64, 64]} />
+          <meshStandardMaterial 
+            map={dayTexture}
+            roughness={0.8}
+            metalness={0.1}
+            emissiveMap={nightTexture}
+            emissive={new THREE.Color(0xffaa66)}
+            emissiveIntensity={0.4}
+          />
+        </mesh>
+        
+        {/* Claim markers - now inside rotating group */}
+        {claimMarkers.map((marker) => (
+          <ClaimPoint
+            key={marker.id}
+            marker={marker}
+            onClick={() => onClaimSelect(marker.id)}
+            isSelected={selectedClaim === marker.id}
+          />
+        ))}
+      </group>
     </group>
   );
 }
