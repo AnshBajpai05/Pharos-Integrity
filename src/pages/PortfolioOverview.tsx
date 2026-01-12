@@ -108,14 +108,14 @@ const PortfolioOverview = () => {
           animate={{ opacity: 1, y: 0 }}
         >
           {[
-            { label: 'Total Companies', value: companies.length, icon: Building2, color: 'text-primary' },
-            { label: 'Average Integrity', value: `${avgScore}%`, icon: CheckCircle2, color: 'text-success' },
-            { label: 'Total Claims', value: totalClaims, icon: Globe2, color: 'text-foreground' },
-            { label: 'Active Gaps', value: gapCount, icon: AlertTriangle, color: 'text-danger' },
+            { label: 'Total Companies', value: companies.length, icon: Building2, color: 'text-primary', tooltip: '' },
+            { label: 'Average Integrity', value: `${avgScore}%`, icon: CheckCircle2, color: 'text-success', tooltip: 'Weighted by claim materiality and verifiability confidence.' },
+            { label: 'Total Claims', value: totalClaims, icon: Globe2, color: 'text-foreground', tooltip: '' },
+            { label: 'Active Gaps', value: gapCount, icon: AlertTriangle, color: 'text-danger', tooltip: '' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
-              className="glass-panel p-4 card-lift"
+              className="glass-panel p-4 card-lift relative group"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
@@ -125,6 +125,12 @@ const PortfolioOverview = () => {
               </div>
               <p className="counter-value text-2xl">{stat.value}</p>
               <span className="text-xs text-muted-foreground">{stat.label}</span>
+              {stat.tooltip && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-popover border border-border rounded-lg shadow-lg text-xs text-muted-foreground max-w-[200px] text-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                  {stat.tooltip}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-popover" />
+                </div>
+              )}
             </motion.div>
           ))}
         </motion.div>

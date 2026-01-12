@@ -460,24 +460,29 @@ const SubmitReport = () => {
               </div>
 
               {/* Analyze Button */}
-              <Button
-                type="button"
-                onClick={analyzeClaimsWithAI}
-                disabled={isAnalyzing || claims.filter(c => c.text.trim()).length === 0}
-                className="w-full bg-gradient-to-r from-primary/80 to-primary hover:from-primary hover:to-primary/90 text-primary-foreground"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Analyzing {claims.filter(c => c.text.trim()).length} claims...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Analyze All Claims
-                  </>
-                )}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  onClick={analyzeClaimsWithAI}
+                  disabled={isAnalyzing || claims.filter(c => c.text.trim()).length === 0}
+                  className="w-full bg-gradient-to-r from-primary/80 to-primary hover:from-primary hover:to-primary/90 text-primary-foreground"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing {claims.filter(c => c.text.trim()).length} claims...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Analyze All Claims
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  This triggers automated claim extraction, contradiction analysis, and conditional geospatial verification.
+                </p>
+              </div>
             </div>
 
             {/* Additional Notes */}

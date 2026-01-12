@@ -27,17 +27,18 @@ interface Claim {
   confidence: number;
   sector: string;
   riskLevel: 'low' | 'medium' | 'high';
+  verifiabilityClass: 'Physically Groundable' | 'Indirectly Groundable' | 'Text-Only' | 'Not Verifiable';
 }
 
 const mockClaims: Claim[] = [
-  { id: 'CLM-001', company: 'GreenTech Solutions', claim: 'Carbon neutral operations by 2023', location: 'Singapore', date: '2024-01-15', status: 'verified', confidence: 94, sector: 'Technology', riskLevel: 'low' },
-  { id: 'CLM-002', company: 'AgroForest Inc', claim: '10,000 hectares reforested', location: 'São Paulo, Brazil', date: '2024-01-12', status: 'gap', confidence: 23, sector: 'Agriculture', riskLevel: 'high' },
-  { id: 'CLM-003', company: 'Nordic Energy', claim: '100% renewable energy usage', location: 'Berlin, Germany', date: '2024-01-10', status: 'review', confidence: 67, sector: 'Energy', riskLevel: 'medium' },
-  { id: 'CLM-004', company: 'Pacific Fisheries', claim: 'Sustainable fishing practices', location: 'Tokyo, Japan', date: '2024-01-08', status: 'verified', confidence: 89, sector: 'Food & Agriculture', riskLevel: 'low' },
-  { id: 'CLM-005', company: 'EcoMine Corp', claim: 'Zero waste to landfill', location: 'Sydney, Australia', date: '2024-01-05', status: 'review', confidence: 71, sector: 'Mining', riskLevel: 'medium' },
-  { id: 'CLM-006', company: 'CleanWater Systems', claim: 'Water recycling at 95%', location: 'Mumbai, India', date: '2024-01-03', status: 'verified', confidence: 91, sector: 'Utilities', riskLevel: 'low' },
-  { id: 'CLM-007', company: 'BioFuel Dynamics', claim: 'Carbon-negative fuel production', location: 'Houston, USA', date: '2024-01-02', status: 'gap', confidence: 31, sector: 'Energy', riskLevel: 'high' },
-  { id: 'CLM-008', company: 'Terra Construction', claim: 'Sustainable building materials', location: 'Dubai, UAE', date: '2023-12-28', status: 'review', confidence: 58, sector: 'Construction', riskLevel: 'medium' },
+  { id: 'CLM-001', company: 'GreenTech Solutions', claim: 'Carbon neutral operations by 2023', location: 'Singapore', date: '2024-01-15', status: 'verified', confidence: 94, sector: 'Technology', riskLevel: 'low', verifiabilityClass: 'Indirectly Groundable' },
+  { id: 'CLM-002', company: 'AgroForest Inc', claim: '10,000 hectares reforested', location: 'São Paulo, Brazil', date: '2024-01-12', status: 'gap', confidence: 23, sector: 'Agriculture', riskLevel: 'high', verifiabilityClass: 'Physically Groundable' },
+  { id: 'CLM-003', company: 'Nordic Energy', claim: '100% renewable energy usage', location: 'Berlin, Germany', date: '2024-01-10', status: 'review', confidence: 67, sector: 'Energy', riskLevel: 'medium', verifiabilityClass: 'Indirectly Groundable' },
+  { id: 'CLM-004', company: 'Pacific Fisheries', claim: 'Sustainable fishing practices', location: 'Tokyo, Japan', date: '2024-01-08', status: 'verified', confidence: 89, sector: 'Food & Agriculture', riskLevel: 'low', verifiabilityClass: 'Text-Only' },
+  { id: 'CLM-005', company: 'EcoMine Corp', claim: 'Zero waste to landfill', location: 'Sydney, Australia', date: '2024-01-05', status: 'review', confidence: 71, sector: 'Mining', riskLevel: 'medium', verifiabilityClass: 'Indirectly Groundable' },
+  { id: 'CLM-006', company: 'CleanWater Systems', claim: 'Water recycling at 95%', location: 'Mumbai, India', date: '2024-01-03', status: 'verified', confidence: 91, sector: 'Utilities', riskLevel: 'low', verifiabilityClass: 'Indirectly Groundable' },
+  { id: 'CLM-007', company: 'BioFuel Dynamics', claim: 'Carbon-negative fuel production', location: 'Houston, USA', date: '2024-01-02', status: 'gap', confidence: 31, sector: 'Energy', riskLevel: 'high', verifiabilityClass: 'Not Verifiable' },
+  { id: 'CLM-008', company: 'Terra Construction', claim: 'Sustainable building materials', location: 'Dubai, UAE', date: '2023-12-28', status: 'review', confidence: 58, sector: 'Construction', riskLevel: 'medium', verifiabilityClass: 'Text-Only' },
 ];
 
 const statusConfig = {
@@ -196,6 +197,9 @@ const ClaimExplorer = () => {
                     Risk
                   </th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Verifiability
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -252,6 +256,11 @@ const ClaimExplorer = () => {
                       <td className="px-4 py-3">
                         <span className={cn("text-xs font-medium uppercase", riskColors[claim.riskLevel])}>
                           {claim.riskLevel}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-muted-foreground" title="Claim Verifiability Estimator (CVE) classification">
+                          {claim.verifiabilityClass}
                         </span>
                       </td>
                       <td className="px-4 py-3">

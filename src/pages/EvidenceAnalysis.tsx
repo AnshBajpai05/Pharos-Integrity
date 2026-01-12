@@ -371,7 +371,7 @@ const EvidenceAnalysis = () => {
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-sm font-medium text-danger">Critical Finding</span>
+                      <span className="text-sm font-medium text-danger">Material Inconsistency Detected</span>
                       <p className="text-xs text-muted-foreground mt-1">
                         Satellite imagery shows 42% reduction in forest cover compared to baseline, 
                         contradicting the claim of 10,000 hectares reforestation.

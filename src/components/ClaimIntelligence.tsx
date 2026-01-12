@@ -147,7 +147,7 @@ const claimDetails: Record<string, {
       'Third-party audit confirms 99.2% renewable energy usage',
       'Satellite imagery shows rooftop solar installation consistent with claims',
     ],
-    recommendation: 'Claim supported by strong evidence chain. No action required.',
+    recommendation: 'Claim supported by strong evidence chain. No further automated escalation; periodic human review recommended.',
   },
   '2': {
     integrityScore: 24,
