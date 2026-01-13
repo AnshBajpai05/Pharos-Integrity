@@ -265,7 +265,7 @@ const ClaimExplorer = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <Link to="/evidence">
+                        <Link to={`/evidence/${claim.id}`}>
                           <motion.button
                             className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 opacity-0 group-hover:opacity-100 transition-all"
                             whileHover={{ scale: 1.05 }}
