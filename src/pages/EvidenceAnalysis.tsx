@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { cn } from '@/lib/utils';
+import { DataCoveragePanel } from '@/components/DataCoveragePanel';
+import { RegulatoryDisclaimer } from '@/components/RegulatoryDisclaimer';
 
 const EvidenceAnalysis = () => {
   const [activeLayer, setActiveLayer] = useState<'rgb' | 'ndvi' | 'sar'>('rgb');
@@ -407,9 +409,15 @@ const EvidenceAnalysis = () => {
                 </div>
               </div>
             </motion.div>
+
+            {/* Data Coverage & Uncertainty Panel */}
+            <DataCoveragePanel />
           </div>
         </div>
       </div>
+      
+      {/* Regulatory Disclaimer Footer */}
+      <RegulatoryDisclaimer />
     </AppLayout>
   );
 };

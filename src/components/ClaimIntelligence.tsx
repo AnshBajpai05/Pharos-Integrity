@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Eye, Satellite, Leaf } from 'lucide-react';
 import { claims, type Claim } from './DocumentViewer';
+import { ClaimVerifiabilityPanel } from './ClaimVerifiabilityPanel';
+import { HumanEscalationPanel } from './HumanEscalationPanel';
 
 interface ClaimIntelligenceProps {
   selectedClaim: string | null;
@@ -316,6 +318,12 @@ export const ClaimIntelligence = ({ selectedClaim }: ClaimIntelligenceProps) => 
                   ))}
                 </motion.ul>
               </div>
+
+              {/* Claim Verifiability Panel */}
+              <ClaimVerifiabilityPanel selectedClaim={selectedClaim} />
+
+              {/* Human Escalation Panel - for gap and review claims */}
+              <HumanEscalationPanel claimId={claim.id} status={claim.status} />
 
               {/* Recommendation */}
               <motion.div 

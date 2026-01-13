@@ -16,6 +16,7 @@ import {
 import { AppLayout } from '@/components/AppLayout';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { RegulatoryDisclaimer } from '@/components/RegulatoryDisclaimer';
 
 interface Claim {
   id: string;
@@ -282,6 +283,9 @@ const ClaimExplorer = () => {
           </div>
         </motion.div>
       </div>
+      
+      {/* Regulatory Disclaimer Footer */}
+      <RegulatoryDisclaimer />
     </AppLayout>
   );
 };

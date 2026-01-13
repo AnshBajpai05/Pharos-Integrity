@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { cn } from '@/lib/utils';
+import { RegulatoryDisclaimer } from '@/components/RegulatoryDisclaimer';
 
 interface AuditStep {
   id: string;
@@ -389,6 +390,9 @@ const AuditTrail = () => {
           </motion.div>
         </div>
       </div>
+      
+      {/* Regulatory Disclaimer Footer */}
+      <RegulatoryDisclaimer />
     </AppLayout>
   );
 };
