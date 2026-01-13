@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Satellite, 
@@ -13,17 +14,57 @@ import {
   TrendingDown,
   BarChart3,
   Radar,
-  Download
+  Download,
+  ChevronRight,
+  Clock,
+  MapPin,
+  FileText
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { cn } from '@/lib/utils';
 import { DataCoveragePanel } from '@/components/DataCoveragePanel';
 import { RegulatoryDisclaimer } from '@/components/RegulatoryDisclaimer';
 
+// Mock claims data - should match ClaimExplorer
+const claimsData: Record<string, {
+  id: string;
+  company: string;
+  claim: string;
+  location: string;
+  coordinates: string;
+  date: string;
+  status: 'verified' | 'review' | 'gap';
+  confidence: number;
+  sector: string;
+  dataSources: string[];
+}> = {
+  'CLM-001': { id: 'CLM-001', company: 'GreenTech Solutions', claim: 'Carbon neutral operations by 2023', location: 'Singapore', coordinates: '1.3521° N, 103.8198° E', date: '2024-01-15', status: 'verified', confidence: 94, sector: 'Technology', dataSources: ['Sentinel-2', 'ESG Report p.12'] },
+  'CLM-002': { id: 'CLM-002', company: 'AgroForest Inc', claim: '10,000 hectares reforested', location: 'São Paulo, Brazil', coordinates: '-23.5505° S, -46.6333° W', date: '2024-01-12', status: 'gap', confidence: 23, sector: 'Agriculture', dataSources: ['Sentinel-2', 'Sentinel-1', 'ESG Report p.45'] },
+  'CLM-003': { id: 'CLM-003', company: 'Nordic Energy', claim: '100% renewable energy usage', location: 'Berlin, Germany', coordinates: '52.5200° N, 13.4050° E', date: '2024-01-10', status: 'review', confidence: 67, sector: 'Energy', dataSources: ['Grid Data', 'ESG Report p.8'] },
+  'CLM-004': { id: 'CLM-004', company: 'Pacific Fisheries', claim: 'Sustainable fishing practices', location: 'Tokyo, Japan', coordinates: '35.6762° N, 139.6503° E', date: '2024-01-08', status: 'verified', confidence: 89, sector: 'Food & Agriculture', dataSources: ['Vessel Tracking', 'ESG Report p.22'] },
+  'CLM-005': { id: 'CLM-005', company: 'EcoMine Corp', claim: 'Zero waste to landfill', location: 'Sydney, Australia', coordinates: '-33.8688° S, 151.2093° E', date: '2024-01-05', status: 'review', confidence: 71, sector: 'Mining', dataSources: ['Sentinel-2', 'ESG Report p.31'] },
+  'CLM-006': { id: 'CLM-006', company: 'CleanWater Systems', claim: 'Water recycling at 95%', location: 'Mumbai, India', coordinates: '19.0760° N, 72.8777° E', date: '2024-01-03', status: 'verified', confidence: 91, sector: 'Utilities', dataSources: ['Facility Data', 'ESG Report p.15'] },
+  'CLM-007': { id: 'CLM-007', company: 'BioFuel Dynamics', claim: 'Carbon-negative fuel production', location: 'Houston, USA', coordinates: '29.7604° N, -95.3698° W', date: '2024-01-02', status: 'gap', confidence: 31, sector: 'Energy', dataSources: ['Sentinel-1', 'ESG Report p.67'] },
+  'CLM-008': { id: 'CLM-008', company: 'Terra Construction', claim: 'Sustainable building materials', location: 'Dubai, UAE', coordinates: '25.2048° N, 55.2708° E', date: '2023-12-28', status: 'review', confidence: 58, sector: 'Construction', dataSources: ['Supplier Data', 'ESG Report p.41'] },
+};
+
+const statusConfig = {
+  verified: { label: 'Verified', icon: CheckCircle2, class: 'status-verified' },
+  review: { label: 'Under Review', icon: Clock, class: 'status-review' },
+  gap: { label: 'Integrity Gap', icon: AlertTriangle, class: 'status-gap' },
+};
+
+import { AlertTriangle } from 'lucide-react';
+
 const EvidenceAnalysis = () => {
+  const { claimId } = useParams<{ claimId: string }>();
   const [activeLayer, setActiveLayer] = useState<'rgb' | 'ndvi' | 'sar'>('rgb');
   const [selectedDate, setSelectedDate] = useState('2024-01');
   const [comparisonDate, setComparisonDate] = useState('2023-01');
+
+  // Get claim data based on URL parameter, default to CLM-002
+  const currentClaim = claimsData[claimId || 'CLM-002'] || claimsData['CLM-002'];
+  const StatusIcon = statusConfig[currentClaim.status].icon;
 
   const dataQualityIndicators = [
     { label: 'Cloud Coverage', value: 12, max: 100, unit: '%', status: 'good' },
@@ -49,6 +90,21 @@ const EvidenceAnalysis = () => {
 
   return (
     <AppLayout>
+      {/* Breadcrumb */}
+      <motion.div 
+        className="px-6 py-2 border-b border-border/20 flex items-center gap-2 text-xs"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <Link to="/claims" className="text-muted-foreground hover:text-primary transition-colors">
+          Claim Explorer
+        </Link>
+        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+        <span className="text-primary font-mono">{currentClaim.id}</span>
+        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+        <span className="text-foreground">Evidence Analysis</span>
+      </motion.div>
+
       {/* Header */}
       <motion.header 
         className="h-16 border-b border-border/30 glass-panel flex items-center justify-between px-6"
@@ -57,12 +113,12 @@ const EvidenceAnalysis = () => {
       >
         <div>
           <h1 className="text-lg font-semibold text-foreground">Evidence Analysis</h1>
-          <p className="text-xs text-muted-foreground">CLM-002 • AgroForest Inc - São Paulo Forest Reforestation</p>
+          <p className="text-xs text-muted-foreground">{currentClaim.id} • {currentClaim.company} - {currentClaim.claim}</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="status-gap">
-            <AlertCircle className="w-3.5 h-3.5" />
-            Integrity Gap Detected
+          <span className={statusConfig[currentClaim.status].class}>
+            <StatusIcon className="w-3.5 h-3.5" />
+            {statusConfig[currentClaim.status].label}
           </span>
           <motion.button
             className="btn-neon flex items-center gap-2 text-sm"
@@ -74,6 +130,50 @@ const EvidenceAnalysis = () => {
           </motion.button>
         </div>
       </motion.header>
+
+      {/* Claim Context Card */}
+      <motion.div 
+        className="mx-6 mt-4 glass-panel p-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+          <FileText className="w-4 h-4 text-primary" />
+          Claim Context
+        </h3>
+        <div className="grid grid-cols-6 gap-4 text-xs">
+          <div>
+            <span className="text-muted-foreground block mb-1">Claim ID</span>
+            <span className="text-primary font-mono">{currentClaim.id}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground block mb-1">Company</span>
+            <span className="text-foreground">{currentClaim.company}</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-muted-foreground block mb-1">Claim Statement</span>
+            <span className="text-foreground">{currentClaim.claim}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground block mb-1 flex items-center gap-1">
+              <MapPin className="w-3 h-3" /> Location
+            </span>
+            <span className="text-foreground">{currentClaim.location}</span>
+            <span className="text-muted-foreground block text-[10px]">{currentClaim.coordinates}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground block mb-1">Data Sources</span>
+            <div className="flex flex-wrap gap-1">
+              {currentClaim.dataSources.map((source) => (
+                <span key={source} className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] text-foreground/80">
+                  {source}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-auto">

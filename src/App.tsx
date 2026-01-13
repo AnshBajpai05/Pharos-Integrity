@@ -25,6 +25,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/claims" element={<ClaimExplorer />} />
           <Route path="/evidence" element={<EvidenceAnalysis />} />
+          <Route path="/evidence/:claimId" element={<EvidenceAnalysis />} />
           <Route path="/audit-trail" element={<AuditTrail />} />
           <Route path="/portfolio" element={<PortfolioOverview />} />
           <Route path="/transparency" element={<SystemTransparency />} />
