@@ -9,6 +9,7 @@ import { ClaimIntelligence } from '../components/ClaimIntelligence';
 import { DashboardCards } from '../components/DashboardCards';
 import { TimelineSlider } from '../components/TimelineSlider';
 import { AppSidebar } from '../components/AppSidebar';
+import { RegulatoryDisclaimer } from '../components/RegulatoryDisclaimer';
 
 const Index = () => {
   const [selectedClaim, setSelectedClaim] = useState<string | null>(null);
@@ -114,6 +115,9 @@ const Index = () => {
             <ClaimIntelligence selectedClaim={selectedClaim} />
           </motion.div>
         </div>
+        
+        {/* Regulatory Disclaimer Footer */}
+        <RegulatoryDisclaimer />
       </div>
     </div>
   );
